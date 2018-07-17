@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Prediction Wizard</title>
+    <link rel="stylesheet" href="/static/d3.slider.css" />
+    <style>
+
+     body {
+       background: #9198e5;
+       font-family: Verdana,Arial,sans-serif;
+     }
+
+     h2 {
+       font-size: 1.2em;
+       margin: 60px 0 5px 0;
+       color: black
+     }
+
+     .space {
+       margin-bottom: 20 px;
+     }
+
+     .wrapper {
+       width: 800px;
+       margin-left: auto;
+       margin-right: auto;
+       margin-bottom: 0px;
+     }
+
+     #bar_chart {
+       margin-bottom: 0 px;
+     }
+
+     .bar {
+       fill: ForestGreen;
+     }
+
+     span {
+       color: crimson;
+     }
+
+    </style>
+  </head>
+
+  <body>
+
+
+    <div id="chart_area" class="wrapper">
+      <h2>Probability of Diabetes</h2>
+      <p class="space"></p>
+      <div id="bar_chart">
+      </div>
+    </div>
+
+    <div id="sliders" class="wrapper">
+
+      <h2 class="feature">Age: <span id="age">25</span></h2>
+      <div id="age_slider"></div>
+
+      <h2 class="feature">Body Mass Index: <span id="bmi">25</span></h2>
+      <div id="bmi_slider"></div>
+
+      <h2 class="feature">Oral Glucose Tolerance: <span id="glucose">100</span></h2>
+      <div id="glucose_slider"></div>
+
+      <h2 class="feature">Insulin: <span id="insulin">150</span></h2>
+      <div id="insulin_slider"></div>
+
+      <h2 class="feature">Blood Pressure: <span id="bloodpressure">50</span></h2>
+      <div id="bloodpressure_slider"></div>
+
+    </div>
+
+    <!-- Import the libraries: jQuery, d3, d3.slider -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="/static/d3.slider.js"></script>
+
+    <script>
+
+     <!-- SINGLE BAR CHART -->
+
+     var age = 25;
+     var bmi = 25;
+     var glucose = 100;
+     var insulin = 150;
+     var bloodpressure = 50;
+     var current_risk = 50
+
+     var chart = d3.select("#bar_chart")
+                   .append("svg:svg")
+                   .attr("width", 800)
+                   .attr("height", 100);
+
+     var chance_scale = d3.scale.linear()
+                                .domain([0, 100])
+                                .range([0, 800]);
+
+     var bar = chart.append("g")
+                    .attr("class", "bar")
+
+       bar.append("svg:rect")
+          .attr("id", "chancebar")
+          .attr("class", "bar")
+          .attr("width", chance_scale(current_risk))
+          .attr("height", 50);
+
+     bar.append("text")
+        .attr("id", "percent_text")
+        .attr("dy", ".75em")
+        .attr("y", 15)
+        .attr("x", chance_scale(current_risk-5))
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .attr("font-size", 20)
+        .text( current_risk.toFixed(1) + "%");
+
+
+     <!-- FUNCTION TO GET CHANCE FROM YOUR PREDICTOR WITH AJAX AND CHANGE BAR  HEIGHT -->
+     function getAndDrawChance(glucose, bloodpressure, insulin, bmi, age){
+
+
+       $.ajax({
+         type: "POST",
+         contentType: "application/json; charset=utf-8",
+         url: "/score",
+         dataType: "json",
+         async: true,
+         data: "{\"example\": ["+glucose+","+bloodpressure+","+insulin+","+bmi+","+age+"]}",
+         success: function (data) {
+           var chance = 100 * data["score"];
+           d3.select("#chancebar")
+             .attr("width", chance_scale(chance));
+           d3.select("#percent_text")
+             .attr("x", chance_scale(chance-5))
+             .text(chance.toFixed(1) + "%");
+         },
+         error: function (result) {
+         }
+       })
+     }
+
+
+     <!-- SLIDERS -->
+
+     d3.select('#age_slider')
+       .call(
+         d3.slider()
+           .value(age)
+           .min(10)
+           .max(100)
+           .step(1)
+           .axis(true)
+           .on("slide", function(evt,value) {
+             d3.select('#age').text(value);
+             age = value;
+             getAndDrawChance(glucose, bloodpressure, insulin, bmi, age)
+           }
+           )
+       );
+
+     d3.select('#bmi_slider')
+       .call(
+         d3.slider()
+           .value(bmi)
+           .min(15)
+           .max(70)
+           .step(1)
+           .axis(true)
+           .on("slide", function(evt,value) {
+             d3.select('#bmi').text(value);
+             bmi = value;
+             getAndDrawChance(glucose, bloodpressure, insulin, bmi, age)
+           }
+           )
+       );
+
+     d3.select('#glucose_slider')
+       .call(
+         d3.slider()
+           .value(glucose)
+           .min(40)
+           .max(220)
+           .step(1)
+           .axis(true)
+           .on("slide", function(evt,value) {
+             d3.select('#glucose').text(value);
+             glucose = value;
+             getAndDrawChance(glucose, bloodpressure, insulin, bmi, age)
+           }
+           )
+       );
+
+       d3.select('#insulin_slider')
+         .call(
+           d3.slider()
+             .value(insulin)
+             .min(100)
+             .max(250)
+             .step(1)
+             .axis(true)
+             .on("slide", function(evt,value) {
+               d3.select('#insulin').text(value);
+               insulin = value;
+               getAndDrawChance(glucose, bloodpressure, insulin, bmi, age)
+             }
+             )
+         );
+
+         d3.select('#bloodpressure_slider')
+           .call(
+             d3.slider()
+               .value(bloodpressure)
+               .min(20)
+               .max(150)
+               .step(1)
+               .axis(true)
+               .on("slide", function(evt,value) {
+                 d3.select('#bloodpressure').text(value);
+                 glucose = value;
+                 getAndDrawChance(glucose, bloodpressure, insulin, bmi, age)
+               }
+               )
+           );
+    </script>
+  </body>
+</html>
